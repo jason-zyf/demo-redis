@@ -230,5 +230,67 @@ public class RedisTest {
         log.info(list.toString());      // [dsa, cxz]
     }
 
+    /**
+     * 批量更新hash对象里面的属性值
+     */
+    @Test
+    public void testHashMultiPut(){
+        String key = "user";
+        Map<String,Object> maps = new HashMap<>();
+        maps.put("age", 16);
+        maps.put("sex", "男");
+        redisService.hMultiSet(key, maps);
+        log.info("批量更新对象{}中的属性值",key);
+    }
+
+    /**
+     * 查询hash中多个属性的值
+     */
+    @Test
+    public void testHashMultiGet(){
+        Set<Object> hashKeys = new HashSet<>();
+        String key = "user";
+        hashKeys.add("age");
+        hashKeys.add("sex");
+        List<Object> list = redisService.hMultiGet(key, hashKeys);
+        log.info(list.toString());           // [男, 16]
+    }
+
+    /**
+     * 从列表的尾部添加数据
+     */
+    @Test
+    public void testListPut(){
+        String key = "list1";
+        String value = "23";
+        Long num = redisService.lSet(key, value);
+    }
+
+    /**
+     * 删除list类型的某个value
+     */
+    @Test
+    public void testListRemove(){
+        String key = "list1";
+        String value = "23";
+        Long num = redisService.lRemove(key, value);
+        log.info("删除了{}个值",num.toString());
+    }
+
+    /**
+     *
+     */
+    @Test
+    public void testListMultiSet(){
+        List<String> values = new ArrayList<>();
+        values.add("5");
+        values.add("15");
+        values.add("25");
+        String key = "list1";
+        Long num = redisService.lMultiSet(key, values);
+        log.info("新增后，有{}个数据",num);
+    }
+
+
 
 }
