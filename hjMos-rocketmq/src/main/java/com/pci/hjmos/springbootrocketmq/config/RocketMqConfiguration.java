@@ -3,11 +3,15 @@ package com.pci.hjmos.springbootrocketmq.config;
 import com.pci.hjmos.springbootrocketmq.bean.MessageEvent;
 import com.pci.hjmos.springbootrocketmq.entity.RocketMqProperties;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
 import org.apache.rocketmq.client.consumer.listener.*;
 import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.client.producer.LocalTransactionState;
+import org.apache.rocketmq.client.producer.TransactionListener;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
+import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageExt;
 import org.apache.rocketmq.common.protocol.heartbeat.MessageModel;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,6 +90,37 @@ public class RocketMqConfiguration {
         producer.setCheckThreadPoolMaxSize(2);
         // 队列数
         producer.setCheckRequestHoldMax(2000);
+        //添加事务监听器
+        producer.setTransactionListener(new TransactionListener() {
+            /**
+             * 在该方法中执行本地事务
+             * @param msg
+             * @param arg
+             * @return
+             */
+            @Override
+            public LocalTransactionState executeLocalTransaction(Message msg, Object arg) {
+                if (StringUtils.equals("aa", msg.getTags())) {
+                    return LocalTransactionState.COMMIT_MESSAGE;
+                } else if (StringUtils.equals("rollback", msg.getTags())) {
+                    return LocalTransactionState.ROLLBACK_MESSAGE;
+                } else if (StringUtils.equals("unknow", msg.getTags())) {
+                    return LocalTransactionState.UNKNOW;
+                }
+                return LocalTransactionState.COMMIT_MESSAGE;
+            }
+            /**
+             * 该方法时MQ进行消息事务状态回查
+             * @param msg
+             * @return
+             */
+            @Override
+            public LocalTransactionState checkLocalTransaction(MessageExt msg) {
+                System.out.println("消息的Tag:" + msg.getTags());
+                return LocalTransactionState.COMMIT_MESSAGE;
+            }
+        });
+
         producer.start();
         log.info("rocketmq transaction producer server is starting....");
         return producer;

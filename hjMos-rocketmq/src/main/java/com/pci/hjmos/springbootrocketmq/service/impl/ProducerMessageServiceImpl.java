@@ -6,11 +6,14 @@ import com.pci.hjmos.springbootrocketmq.entity.ProduceMessage;
 import com.pci.hjmos.springbootrocketmq.exception.MqSendException;
 import com.pci.hjmos.springbootrocketmq.service.ProducerMessageService;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.exception.MQBrokerException;
+import org.apache.rocketmq.client.exception.MQClientException;
 import org.apache.rocketmq.client.producer.DefaultMQProducer;
 import org.apache.rocketmq.client.producer.SendResult;
 import org.apache.rocketmq.client.producer.TransactionMQProducer;
 import org.apache.rocketmq.common.message.Message;
 import org.apache.rocketmq.common.message.MessageQueue;
+import org.apache.rocketmq.remoting.exception.RemotingException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -43,6 +46,14 @@ public class ProducerMessageServiceImpl implements ProducerMessageService {
     @Override
     public boolean produceMessage(ProduceMessage produceMessage) {
         return produceMessageCore(produceMessage);
+    }
+
+    private Message createMessage(ProduceMessage produceMessage) {
+        @NotBlank String topic = produceMessage.getTopic();
+        @NotBlank String content = produceMessage.getContent();
+        @NotBlank String tag = produceMessage.getTag();
+        String keys = produceMessage.getKeys();
+        return new Message(topic, tag, keys, content.getBytes());
     }
 
     private boolean produceMessageCore(ProduceMessage produceMessage) {
@@ -89,30 +100,55 @@ public class ProducerMessageServiceImpl implements ProducerMessageService {
         this.logMsg(msg, result);
         return result;
     }
+
+    /**
+     * 支持顺序发送消息
+     */
+    private SendResult sendMsgOrder(String topic, String tags, String keys, String content, int orderId) throws Exception {
+        Message msg = new Message(topic, tags, keys, content.getBytes());
+        SendResult sendResult = defaultMQProducer.send(msg, (List<MessageQueue> mqs, Message message, Object arg) -> {
+                    Integer id = (Integer) arg;
+                    int index = id % mqs.size();
+                    return mqs.get(index);
+                }
+                , orderId);
+        this.logMsg(msg, sendResult);
+        return sendResult;
+    }
+
+    /**
+     * 发送同步消息
+     * @param produceMessage
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public SendResult sendSyncMsg(ProduceMessage produceMessage) throws Exception {
+        Message msg = createMessage(produceMessage);
+        SendResult result = defaultMQProducer.send(msg);
+        this.logMsg(msg, result);
+        return result;
+    }
+
     /**
      * 异步发送 默认回调函数
-     *
-     * @param topic
-     * @param tag
-     * @param keys
-     * @param content
+     *@param produceMessage
+     *@throws Exception
      */
-    private void sendAsyncDefault(String topic, String tag, String keys, String content) throws Exception {
-        Message msg = new Message(topic, tag, keys, content.getBytes());
+    public void sendAsyncMsg(ProduceMessage produceMessage) throws Exception {
+        Message msg = createMessage(produceMessage);
         defaultMQProducer.send(msg, rocketSendCallback);
         this.logMsg(msg);
     }
 
     /**
-     * 单向发送
-     *
-     * @param topic
-     * @param tag
-     * @param keys
-     * @param content
+     * 发送单向消息
+     * @param produceMessage
+     * @throws Exception
      */
-    private void sendOneWay(String topic, String tag, String keys, String content) throws Exception {
-        Message msg = new Message(topic, tag, keys, content.getBytes());
+    @Override
+    public void sendOneWayMsg(ProduceMessage produceMessage) throws Exception {
+        Message msg = createMessage(produceMessage);
         defaultMQProducer.sendOneway(msg);
         defaultMQProducer.send(msg, (queues, message, queNum) -> {
             int queueNum = Integer.parseInt(queNum.toString());
@@ -120,21 +156,31 @@ public class ProducerMessageServiceImpl implements ProducerMessageService {
         }, 0);
         this.logMsg(msg);
     }
+
     /**
      * 发送事务消息
+     * @param produceMessage
+     * @return
+     * @throws MQClientException
      */
-    private SendResult sendTransactionMsg(String topic, String tags, String keys, String content) throws Exception {
-        Message msg = new Message(topic, tags, keys, content.getBytes());
+    @Override
+    public SendResult sendTransactionMsg(ProduceMessage produceMessage) throws MQClientException {
+        Message msg = createMessage(produceMessage);
         SendResult sendResult = transactionMQProducer.sendMessageInTransaction(msg, null);
         this.logMsg(msg, sendResult);
         return sendResult;
     }
 
     /**
-     * 支持顺序发送消息
+     * 发送顺序消息
+     * @param produceMessage
+     * @param orderId
+     * @return
+     * @throws Exception
      */
-    private SendResult sendMsgOrder(String topic, String tags, String keys, String content, int orderId) throws Exception {
-        Message msg = new Message(topic, tags, keys, content.getBytes());
+    @Override
+    public SendResult sendMsgOrder(ProduceMessage produceMessage,int orderId) throws Exception {
+        Message msg = createMessage(produceMessage);
         SendResult sendResult = defaultMQProducer.send(msg, (List<MessageQueue> mqs, Message message, Object arg) -> {
                     Integer id = (Integer) arg;
                     int index = id % mqs.size();
