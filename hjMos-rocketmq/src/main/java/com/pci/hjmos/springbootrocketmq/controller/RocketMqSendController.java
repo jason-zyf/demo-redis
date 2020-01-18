@@ -4,8 +4,6 @@ import com.pci.hjmos.springbootrocketmq.entity.OrderStep;
 import com.pci.hjmos.springbootrocketmq.entity.ProduceMessage;
 import com.pci.hjmos.springbootrocketmq.service.ProducerMessageService;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.rocketmq.client.exception.MQClientException;
-import org.apache.rocketmq.common.message.Message;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,12 +46,12 @@ public class RocketMqSendController {
 
     @GetMapping("/sendOneWayMsg")
     public String sendOneWayMsg() throws Exception {
-        prodeucerMessageService.sendOneWayMsg(new ProduceMessage("my-topic","aa","oneway"));
+        prodeucerMessageService.sendOneWayMsg(new ProduceMessage("my-topic","oneWay","oneway"));
         return "成功发送一条单向消息";
     }
 
     @GetMapping("/sendTransactionMsg")
-    public String sendTransactionMsg() throws MQClientException {
+    public String sendTransactionMsg() throws Exception {
         log.info("发送一条事务消息...........");
         prodeucerMessageService.sendTransactionMsg(new ProduceMessage("my-topic","aa","transaction"));
         return "成功发送一条事务消息";
