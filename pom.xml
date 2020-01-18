@@ -11,6 +11,7 @@
     <modules>
         <module>hjMos-common</module>
         <module>hjMos-rocketmq</module>
+        <module>hjMos-kafka</module>
     </modules>
 
     <parent>
