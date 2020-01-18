@@ -9,12 +9,13 @@ public class RocketSendCallback implements SendCallback {
 
     @Override
     public void onSuccess(SendResult sendResult) {
-        log.info("send message success. topic=" + sendResult.getMessageQueue().getTopic() + ", msgId=" + sendResult.getMsgId());
+        log.info("send success,topic=" + sendResult.getMessageQueue().getTopic() +
+                ", msgId=" + sendResult.getMsgId());
     }
 
     @Override
     public void onException(Throwable e) {
-        log.error("send message failed.", e);
+        log.error("send failed.", e);
     }
 
 }
