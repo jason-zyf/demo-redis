@@ -25,7 +25,7 @@ public interface ProducerMessageService {
 
     void sendOneWayMsg(ProduceMessage produceMessage) throws Exception;
 
-    SendResult sendTransactionMsg(ProduceMessage produceMessage) throws MQClientException;
+    SendResult sendTransactionMsg(ProduceMessage produceMessage) throws Exception;
 
     SendResult sendMsgOrder(ProduceMessage produceMessage,int orderId) throws Exception;
 
