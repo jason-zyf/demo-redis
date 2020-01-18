@@ -17,10 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * TODO
- *
- * @author lsk
  * @class_name RedisService
- * @date 2019-05-30
  */
 @Component
 @Log4j2
